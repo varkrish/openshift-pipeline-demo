@@ -1,0 +1,87 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: go-pipeline
+  labels:
+    rht-labs.com/uj: ubiquitous-journey
+spec:
+  workspaces:
+    - name: shared-workspace
+    - name: scratch
+  params:
+    - name: APPLICATION_NAME
+      type: string
+      default: ""
+    - name: GIT_URL
+      type: string
+      default: ""
+    - name: GIT_REVISION
+      type: string
+      default: "main"
+    - name: GIT_REF
+      type: string
+      default: "refs/heads/main"
+    - name: GIT_SHORT_REVISION
+      type: string
+      default: ""
+    - name: GIT_BRANCH
+      type: string
+      default: "main"
+    - name: HELM_CHART_VERSION
+      type: string
+      default: ""
+    - name: HELM_OVERWRITE_VALUES
+      type: string
+      default: "is.enabled=false"
+    - name: BUILD_NAMESPACE
+      type: string
+      default: "labs-ci-cd"
+    - name: DEV_NAMESPACE
+      type: string
+      default: "labs-dev"
+  tasks:
+    - name: fetch-app-repository
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: "$(params.GIT_URL)"
+        - name: revision
+          value: "$(params.GIT_REVISION)"
+        - name: refspec
+          value: "$(params.GIT_REF)"
+        - name: subdirectory
+          value: "$(params.APPLICATION_NAME)/$(params.GIT_BRANCH)"
+        - name: deleteExisting
+          value: "true"
+    - name: build
+      taskRef:
+        name: golang-build
+      params:
+         - name: packages
+           value: "."
+         - name: package
+           value: "."
+      workspaces:
+         - name: source
+           workspace: shared-workspace
+         - name: scratch
+           workspace: scratch
+      runAfter:
+         - fetch-app-repository
+    - name: image-build
+      taskRef:
+        name: build-image
+      params:
+         - name: CONTAINER_FILE
+           value: "./Dockerfile"
+         - name: IMAGE_NAME
+           value: "go-app"
+      workspaces:
+         - name: source
+           workspace: shared-workspace
+      runAfter:
+         - build

@@ -1,0 +1,51 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: helm-upload-chart
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: build-tool
+    tekton.dev/displayName: "helm upload chart"
+spec:
+  workspaces:
+    - name: output
+  params:
+    - name: CHART_REPO
+      description: "Helm Chart Repo"
+    - name: CHART_REPO_USERNAME
+      description: "Helm Chart Repo Username"
+      default: "tekton"
+    - name: CHART_REPO_PASSWORD
+      description: "Helm Chart Repo Password"
+      default: "UMdQ7zZAXkd5py"
+    - name: HELM_VERSION
+      description: "Specify a specific helm version"
+      default: "latest"
+    - name: WORK_DIRECTORY
+      description: Directory to start build in (handle multiple branches)
+      type: string
+    - name: GIT_BRANCH
+      description: Branch
+      type: string
+  steps:
+    - name: upload-chart
+      image: quay.io/eformat/openshift-helm:$(inputs.params.HELM_VERSION)
+      workingDir: $(workspaces.output.path)/$(params.WORK_DIRECTORY)
+      command: ["/bin/bash", "-c"]
+      args:
+      - |
+        set -ex
+        echo "package chart"
+        helm dep up chart/
+        # Successfully packaged chart and saved it to: /home/mike/git/pet-battle-api/pet-battle-api-1.0.6.tgz
+        RET=`helm package chart/ 2>/dev/null`
+        # /home/mike/git/pet-battle-api/pet-battle-api-1.0.6.tgz
+        RET2=${RET##Successfully[a-zA-Z ()]*:}
+        # pet-battle-api-1.0.6.tgz
+        FILE=$(basename ${RET2})
+
+        echo "upload chart"
+        curl -k -vvv -u $(params.CHART_REPO_USERNAME):$(params.CHART_REPO_PASSWORD) --upload-file ${FILE} $(params.CHART_REPO)/

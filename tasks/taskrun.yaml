@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: testtask
+spec:
+  params:
+    - name: url
+      value: https://github.com/varkrish/helm-repo
+    - name: subdirectory
+      value: go-app
+  taskRef:
+    name: git-clone
+  workspaces:
+    - name: source
+      persistentVolumeClaim:
+       claimName: build-images

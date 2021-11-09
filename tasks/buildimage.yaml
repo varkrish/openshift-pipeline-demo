@@ -1,0 +1,63 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-image
+  labels:
+    app.kubernetes.io/version: "0.1"
+    rht-labs.com/uj: ubiquitous-journey
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.0.1"
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "buildah image"
+spec:
+  description: >-
+    This task builds the image and pushed to registry
+  workspaces:
+    - name: source
+  params:
+  - name: CONTAINER_FILE
+    description: "Docker/Container file"
+    default: "Containerfile"
+    type: string
+  - name: IMAGE_NAME
+    description: "image name to be used"
+    type: string
+  steps:
+  - name: build-image
+    image: quay.io/buildah/stable
+    workingDir: "/workspace/source/$(inputs.params.contextDir)"
+    command:
+      - "buildah"
+    args:
+      - "bud"
+      - "--layers"
+      - "-f"
+      - "$(inputs.params.CONTAINER_FILE)"
+      - "-t"
+      - "$(inputs.params.IMAGE_NAME)"
+      - "."
+    securityContext: 
+      runAsUser: 0
+  volumes:
+    - name: varlibc
+      emptyDir: {}
+   # volumeMounts: 
+   #   - name: varlibc
+   #     mountPath: /var/lib/containers
+  # - name: push-image
+  #   image: quay.io/buildah/stable
+  #   workingDir: "/workspace/source/$(inputs.params.contextDir)"
+  #   command:
+  #     - "buildah"
+  #   args:
+  #     - "push"
+  #     - "--tls-verify=$(inputs.params.tlsVerify)"
+  #     - $(inputs.params.CONTAINER_FILE)
+  #     - "docker://$(inputs.params.IMAGE_NAME)"
+  #   securityContext:
+  #     runAsUser: 0
+  #   volumeMounts:
+  #     - name: varlibc
+  #       mountPath: /var/lib/containers
+

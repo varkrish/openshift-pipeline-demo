@@ -1,0 +1,26 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewBuild
+  creationTimestamp: null
+  labels:
+    app: http-go-app
+  name: http-go-app
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: dx-http-go-app:latest
+  postCommit: {}
+  runPolicy: "Parallel"
+  resources: {}
+  source:
+    binary: {}
+    type: Binary
+  strategy:
+    dockerStrategy: {dockerfilePath: ./Dockerfile}
+    type: Docker
+status:
+  lastVersion: 0

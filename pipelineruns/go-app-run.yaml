@@ -1,0 +1,97 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: go-app-run
+  labels:
+    rht-labs.com/uj: ubiquitous-journey
+objects:
+- apiVersion: tekton.dev/v1beta1
+  kind: PipelineRun
+  metadata:
+    generateName: go-app-
+    labels:
+      git.branch: "${GIT_BRANCH}"
+      git.revision: "${GIT_REVISION}"
+      git.short.revision: "${GIT_SHORT_REVISION}"
+    annotations:
+      argocd.argoproj.io/sync-options: Prune=false
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+  spec:
+    pipelineRef:
+      name: go-pipeline
+    podTemplate:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 0
+    serviceAccountName: pipeline
+    workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: build-images
+    - name: git-auth-secret
+      secret:
+        secretName: git-auth
+    - name: quay-auth-secret
+      secret:
+        secretName: dxaddress-pipeline-secret
+    - name: nexus-auth-secret
+      secret:
+        secretName: nexus-dxintegration-secret
+    - name: scratch
+      emptyDir: {}
+    params:
+    - name: APPLICATION_NAME
+      value: "${APPLICATION_NAME}"
+    - name: GIT_URL
+      value: "${GIT_URL}"
+    - name: GIT_REVISION
+      value: "${GIT_REVISION}"
+    - name: GIT_REF
+      value: "${GIT_REF}"
+    - name: GIT_SHORT_REVISION
+      value: "${GIT_SHORT_REVISION}"
+    - name: GIT_BRANCH
+      value: "${GIT_BRANCH}"
+    - name: BUILD_NAMESPACE
+      value: "labs-ci-cd"
+    - name: DEV_NAMESPACE
+      value: "app-dev"
+    # - name: MAVEN_BUILD_OPTS
+    #   value:
+    #     - -Pnative
+parameters:
+- description: Application Name
+  displayName: Application Name
+  name: APPLICATION_NAME
+  required: true
+  value: dcx-go-app
+- description: Git URL
+  displayName: Git URL
+  name: GIT_URL
+  required: true
+  value: "https://github.com/varkrish/http-proxy-go"
+- description: Git tag or revision
+  displayName: Git tag or revision
+  name: GIT_REVISION
+  required: true
+  value: main
+- description: Git ref
+  displayName: Git ref
+  name: GIT_REF
+- description: Git short revision
+  displayName: Git short revision
+  name: GIT_SHORT_REVISION
+  required: true
+  value: main
+- description: Git branch name
+  displayName: Git branch name
+  name: GIT_BRANCH
+  required: true
+  value: main
+- name: package
+  value: "."
+  description: "GO package to be built"
+
+
